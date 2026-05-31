@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import app; c=app.app.test_client\\(\\); r=c.get\\('/'\\); print\\('STATUS', r.status_code\\); print\\('Total Transactions' in r.get_data\\(as_text=True\\), 'Critical Alerts' in r.get_data\\(as_text=True\\)\\)\")",
+      "Bash(python -m pip install flask sqlalchemy python-dotenv)",
+      "Bash(python -c \"import app; c=app.app.test_client\\(\\); r=c.get\\('/'\\); t=r.get_data\\(as_text=True\\); print\\('STATUS', r.status_code\\); print\\('has stat cards:', 'Total Transactions' in t and 'Critical Alerts' in t\\); print\\('css linked:', 'style.css' in t\\)\")",
+      "Bash(python -c \"from db import AMLAlert; cols=[c.name for c in AMLAlert.__table__.columns]; print\\('columns:', cols\\); print\\('emailed' in cols, 'email_sent_at' in cols\\)\")",
+      "Bash(python -c \"import app; c=app.app.test_client\\(\\); r=c.get\\('/static/style.css'\\); print\\('css status', r.status_code, r.mimetype\\)\")",
+      "Bash(python -c \"import app; c=app.app.test_client\\(\\); r=c.get\\('/'\\); print\\('STATUS', r.status_code\\); print\\('HAS_DASHBOARD', b'AML Monitoring System' in r.data and b'Total Transactions' in r.data\\)\")",
+      "Bash(python -c ' *)"
+    ]
+  }
+}

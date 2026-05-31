@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - AML Monitoring System{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+        <h2>Settings</h2>
+        <p class="page-subtitle">Read-only view of system configuration (secrets are never shown)</p>
+    </div>
+
+    <!-- ============ Alert configuration ============ -->
+    <div class="card form-card">
+        <h3 class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+            Alert Configuration
+        </h3>
+        <table class="data-table">
+            <tbody>
+                <tr>
+                    <td>Alert Recipient Email</td>
+                    <td>{{ alert_recipient }}</td>
+                </tr>
+                <tr>
+                    <td>Risk Threshold (HIGH)</td>
+                    <td>{{ risk_threshold }}</td>
+                </tr>
+                <tr>
+                    <td>Critical Threshold</td>
+                    <td>{{ critical_threshold }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ============ System status ============ -->
+    <div class="card form-card">
+        <h3 class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            System Status
+        </h3>
+        <table class="data-table">
+            <tbody>
+                <tr>
+                    <td>Database</td>
+                    <td>
+                        {% if db_status == "Connected" %}
+                            <span class="badge status-closed">Connected</span>
+                        {% else %}
+                            <span class="badge badge-critical">Error</span>
+                        {% endif %}
+                        <span class="muted-text">({{ db_type }})</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>SMTP Configured</td>
+                    <td>
+                        {% if smtp_configured %}
+                            <span class="badge status-closed">Yes</span>
+                        {% else %}
+                            <span class="badge badge-low">No</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ============ Environment variables (SET / NOT SET only) ============ -->
+    <div class="card form-card">
+        <h3 class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m7 10 3 3-3 3M13 16h4"/></svg>
+            Environment Configuration
+        </h3>
+        <p class="page-subtitle">Shows only whether each value is configured — never the value itself.</p>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Variable</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for name, is_set in env_status.items() %}
+                    <tr>
+                        <td>{{ name }}</td>
+                        <td>
+                            {% if is_set %}
+                                <span class="badge status-closed">SET</span>
+                            {% else %}
+                                <span class="badge badge-low">NOT SET</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

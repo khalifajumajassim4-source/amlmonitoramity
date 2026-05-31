@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AML Monitoring System{% endblock %}
+
+{% block content %}
+    <div class="page-header page-header-row">
+        <div>
+            <h2>Dashboard</h2>
+            <p class="page-subtitle">Overview of monitoring activity</p>
+        </div>
+        <!-- Runs the AML scan, which analyzes transactions and creates alerts -->
+        <form method="POST" action="{{ url_for('scan') }}">
+            <button type="submit" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                Run AML Scan
+            </button>
+        </form>
+    </div>
+
+    <!-- Stat cards. Values come from the 'stats' dict passed by the route.
+         The captions below are static descriptive labels, not new data. -->
+    <div class="card-grid">
+
+        <div class="card stat-card stat-card--total">
+            <div class="stat-head">
+                <span class="stat-label">Total Transactions</span>
+                <span class="stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>
+                </span>
+            </div>
+            <span class="stat-value">{{ stats.total_transactions }}</span>
+            <span class="stat-subtitle">across all accounts</span>
+        </div>
+
+        <div class="card stat-card stat-card--alerts">
+            <div class="stat-head">
+                <span class="stat-label">Total Alerts</span>
+                <span class="stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                </span>
+            </div>
+            <span class="stat-value">{{ stats.total_alerts }}</span>
+            <span class="stat-subtitle">raised by AML scans</span>
+        </div>
+
+        <div class="card stat-card stat-card--open">
+            <div class="stat-head">
+                <span class="stat-label">Open Alerts</span>
+                <span class="stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                </span>
+            </div>
+            <span class="stat-value">{{ stats.open_alerts }}</span>
+            <span class="stat-subtitle">awaiting review</span>
+        </div>
+
+        <div class="card stat-card stat-card--escalated">
+            <div class="stat-head">
+                <span class="stat-label">Escalated Alerts</span>
+                <span class="stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 9-6-6-6 6"/><path d="M12 3v14"/><path d="M5 21h14"/></svg>
+                </span>
+            </div>
+            <span class="stat-value">{{ stats.escalated_alerts }}</span>
+            <span class="stat-subtitle">sent to compliance</span>
+        </div>
+
+        <div class="card stat-card stat-card--critical">
+            <div class="stat-head">
+                <span class="stat-label">Critical Alerts</span>
+                <span class="stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7v6c0 5 4 8 10 9 6-1 10-4 10-9V7Z"/><path d="m9 12 2 2 4-4"/></svg>
+                </span>
+            </div>
+            <span class="stat-value stat-critical">{{ stats.critical_alerts }}</span>
+            <span class="stat-subtitle">highest priority</span>
+        </div>
+
+    </div>
+
+    <!-- Recent Activity section. No recent-data variable is passed to this
+         template, so this is a styled empty-state placeholder only — it does
+         NOT query the backend. -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                Recent Alerts
+            </span>
+        </div>
+        <div class="card">
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                <span class="empty-state-title">No recent activity to show</span>
+                <span class="empty-state-text">Run an AML scan to populate alerts, then review them in Alerts &amp; Cases.</span>
+                <form method="POST" action="{{ url_for('scan') }}">
+                    <button type="submit" class="btn btn-primary">Run AML Scan</button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
