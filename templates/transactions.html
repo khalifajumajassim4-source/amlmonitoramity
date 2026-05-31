@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions - AML Monitoring System{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+        <h2>Transactions</h2>
+        <p class="page-subtitle">Add transactions manually, import a CSV, and review recent activity</p>
+    </div>
+
+    <!-- ================= Add Transaction (manual entry) ================= -->
+    <div class="card form-card">
+        <h3 class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+            Add Transaction
+        </h3>
+
+        <!-- POSTs back to the same /transactions route -->
+        <form method="POST" action="{{ url_for('transactions') }}" class="txn-form">
+            <div class="form-grid">
+
+                <label class="field">
+                    <span>Account ID</span>
+                    <input type="number" name="account_id" required>
+                </label>
+
+                <label class="field">
+                    <span>Amount</span>
+                    <input type="number" name="amount" step="0.01" required>
+                </label>
+
+                <label class="field">
+                    <span>Currency</span>
+                    <input type="text" name="currency" value="USD" maxlength="3">
+                </label>
+
+                <label class="field">
+                    <span>Direction</span>
+                    <select name="direction">
+                        <option value="in">in</option>
+                        <option value="out">out</option>
+                    </select>
+                </label>
+
+                <label class="field">
+                    <span>Channel</span>
+                    <input type="text" name="channel" placeholder="e.g. wire, atm, online">
+                </label>
+
+                <label class="field">
+                    <span>Counterparty ID</span>
+                    <input type="text" name="counterparty_id">
+                </label>
+
+                <label class="field">
+                    <span>Counterparty Country</span>
+                    <input type="text" name="counterparty_country" maxlength="2" placeholder="US">
+                </label>
+
+                <label class="field">
+                    <span>Occurred At</span>
+                    <input type="datetime-local" name="occurred_at" required>
+                </label>
+
+                <label class="field">
+                    <span>Balance After (optional)</span>
+                    <input type="number" name="balance_after" step="0.01">
+                </label>
+
+            </div>
+
+            <!-- Boolean flags grouped into their own aligned toggle row -->
+            <div class="toggle-row">
+                <label class="field-check">
+                    <input type="checkbox" name="is_cash" value="true">
+                    <span>Is Cash</span>
+                </label>
+
+                <label class="field-check">
+                    <input type="checkbox" name="is_international" value="true">
+                    <span>Is International</span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+                Add Transaction
+            </button>
+        </form>
+    </div>
+
+    <!-- ================= CSV Upload ================= -->
+    <div class="card form-card">
+        <h3 class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg>
+            Import from CSV
+        </h3>
+        <p class="page-subtitle" style="margin-bottom: 12px;">Required CSV columns:</p>
+        <div class="csv-chips">
+            <code class="chip">account_id</code>
+            <code class="chip">amount</code>
+            <code class="chip">currency</code>
+            <code class="chip">direction</code>
+            <code class="chip">channel</code>
+            <code class="chip">is_cash</code>
+            <code class="chip">is_international</code>
+            <code class="chip">counterparty_id</code>
+            <code class="chip">counterparty_country</code>
+            <code class="chip">occurred_at</code>
+            <code class="chip">balance_after</code>
+        </div>
+
+        <!-- A file upload must use enctype="multipart/form-data".
+             The native input is visually hidden inside the styled label but
+             keeps the same name="csv_file" so the upload still works. -->
+        <form method="POST" action="{{ url_for('transactions_upload') }}"
+              enctype="multipart/form-data" class="upload-form">
+            <label class="file-dropzone">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg>
+                <span>Choose a .csv file…</span>
+                <input type="file" name="csv_file" accept=".csv" required>
+            </label>
+            <button type="submit" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg>
+                Upload CSV
+            </button>
+        </form>
+    </div>
+
+    <!-- ================= Recent transactions table ================= -->
+    <div class="card">
+        <h3 class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="0.5"/><rect x="12" y="7" width="3" height="10" rx="0.5"/><rect x="17" y="13" width="3" height="4" rx="0.5"/></svg>
+            Recent Transactions (latest 50)
+        </h3>
+
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Account</th>
+                        <th class="num">Amount</th>
+                        <th>Currency</th>
+                        <th>Direction</th>
+                        <th>Cash</th>
+                        <th>Intl</th>
+                        <th>Counterparty</th>
+                        <th>Country</th>
+                        <th>Occurred At</th>
+                        <th class="num">Balance After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                        <tr>
+                            <td>{{ t.id }}</td>
+                            <td>{{ t.account_id }}</td>
+                            <td class="num">{{ "%.2f"|format(t.amount) }}</td>
+                            <td>{{ t.currency }}</td>
+                            <td>
+                                <!-- Green-ish badge for incoming, red-ish for outgoing -->
+                                {% if t.direction == "in" %}
+                                    <span class="badge badge-in">in</span>
+                                {% else %}
+                                    <span class="badge badge-out">out</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ "Yes" if t.is_cash else "No" }}</td>
+                            <td>{{ "Yes" if t.is_international else "No" }}</td>
+                            <td>{{ t.counterparty_id }}</td>
+                            <td>{{ t.counterparty_country }}</td>
+                            <td>{{ t.occurred_at.strftime("%Y-%m-%d %H:%M") if t.occurred_at else "" }}</td>
+                            <td class="num">{{ "%.2f"|format(t.balance_after) if t.balance_after is not none else "" }}</td>
+                        </tr>
+                    {% else %}
+                        <!-- Shown when there are no transactions yet -->
+                        <tr>
+                            <td colspan="11" class="empty-row">No transactions yet. Add one above or import a CSV.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
