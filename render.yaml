@@ -1,0 +1,40 @@
+# Render deployment configuration for the AML Monitoring System.
+#
+# NOTE: The variables marked `sync: false` are NOT stored in this file.
+# After the first deploy, open the service in the Render dashboard and fill
+# them in under "Environment". This keeps secrets (like SMTP_PASS) out of git.
+services:
+  - type: web
+    name: aml-monitor
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      # Flask session secret — Render generates a strong random value for us.
+      - key: SECRET_KEY
+        generateValue: true
+
+      # Database connection string (e.g. a Render PostgreSQL "Internal URL").
+      - key: DATABASE_URL
+        sync: false
+
+      # SMTP / email settings — fill these in the Render dashboard.
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: ALERT_SENDER
+        sync: false
+      - key: ALERT_RECIPIENT
+        sync: false
+
+      # Risk-scoring thresholds — fill these in the Render dashboard.
+      - key: RISK_ALERT_THRESHOLD
+        sync: false
+      - key: RISK_CRITICAL_THRESHOLD
+        sync: false
