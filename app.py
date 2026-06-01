@@ -9,9 +9,7 @@ import os
 import csv
 import io
 import json
-import smtplib
 from collections import Counter
-from email.mime.text import MIMEText
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from functools import wraps
@@ -44,12 +42,10 @@ app.config["RISK_CRITICAL_THRESHOLD"] = int(os.getenv("RISK_CRITICAL_THRESHOLD",
 # Where alert emails are sent.
 app.config["ALERT_RECIPIENT"] = os.getenv("ALERT_RECIPIENT", "banksamityforensic@gmail.com")
 
-# SMTP settings for sending those emails (used in a later step).
-app.config["SMTP_HOST"] = os.getenv("SMTP_HOST")
-app.config["SMTP_PORT"] = int(os.getenv("SMTP_PORT", "587"))
-app.config["SMTP_USER"] = os.getenv("SMTP_USER")
-app.config["SMTP_PASS"] = os.getenv("SMTP_PASS")
-app.config["SMTP_SENDER"] = os.getenv("ALERT_SENDER", os.getenv("SMTP_USER"))
+# SendGrid settings for sending escalation emails.
+# Uses the SendGrid HTTPS API instead of SMTP, which avoids Render free-tier SMTP timeouts.
+app.config["SENDGRID_API_KEY"] = os.getenv("SENDGRID_API_KEY")
+app.config["SMTP_SENDER"] = os.getenv("ALERT_SENDER")
 
 # Demo login credentials. These default to admin/admin123 for local testing —
 # CHANGE THEM in production by setting APP_USERNAME and APP_PASSWORD env vars.
@@ -287,29 +283,30 @@ def severity_for_score(score):
 
 
 def send_escalation_email(alert):
-    """Send an escalation email for one alert.
+    """Send an escalation email for one alert using the SendGrid HTTPS API.
 
-    Reuses the same smtplib + MIMEText approach as aml_monitor.py. Returns True
-    if the email was sent, False if it was skipped (missing settings) or failed.
-    It never raises, so escalation still works even when email isn't configured.
+    This avoids SMTP ports, which are often blocked on free hosting platforms.
+    Returns True when SendGrid accepts the message, otherwise False.
+    It never raises, so escalation still works even if email fails.
     """
-    # Read SMTP settings fresh from the environment each time.
-    smtp_host = os.getenv("SMTP_HOST")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_pass = os.getenv("SMTP_PASS")
+    try:
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail
+    except Exception as e:
+        print("EMAIL ERROR: SendGrid package is not installed:", str(e))
+        return False
+
+    api_key = os.getenv("SENDGRID_API_KEY")
     sender = os.getenv("ALERT_SENDER")
     recipient = os.getenv("ALERT_RECIPIENT", "banksamityforensic@gmail.com")
 
-    # If any required setting is missing, skip quietly (don't crash).
-    if not all([smtp_host, smtp_user, smtp_pass, sender, recipient]):
-        print("EMAIL SKIPPED: Missing SMTP settings")
+    if not all([api_key, sender, recipient]):
+        print("EMAIL SKIPPED: Missing SendGrid settings")
         return False
 
     severity = severity_for_score(int(alert.risk_score))
     subject = f"AML {severity} Alert Escalated - Account {alert.account_id}"
 
-    # Build a clearly laid-out plain-text body.
     body = (
         f"Account ID: {alert.account_id}\n"
         f"Risk Score: {alert.risk_score}\n"
@@ -323,19 +320,15 @@ def send_escalation_email(alert):
     )
 
     try:
-        msg = MIMEText(body)
-        msg["Subject"] = subject
-        msg["From"] = sender
-        msg["To"] = recipient
-
-        server = smtplib.SMTP(smtp_host, smtp_port, timeout=20)
-        server.starttls()
-        server.login(smtp_user, smtp_pass)
-        server.sendmail(sender, [recipient], msg.as_string())
-        server.quit()
-
-        print("EMAIL SENT")
-        return True
+        message = Mail(
+            from_email=sender,
+            to_emails=recipient,
+            subject=subject,
+            plain_text_content=body,
+        )
+        response = SendGridAPIClient(api_key).send(message)
+        print("EMAIL SENT:", response.status_code)
+        return response.status_code in (200, 202)
     except Exception as e:
         print("EMAIL ERROR:", str(e))
         return False
@@ -692,16 +685,16 @@ def settings():
     else:
         db_type = "Unknown"
 
-    # SMTP is "configured" only if host, user AND password are all present.
+    # Email is "configured" only if the SendGrid API key and sender are present.
     smtp_configured = all([
-        os.getenv("SMTP_HOST"),
-        os.getenv("SMTP_USER"),
-        os.getenv("SMTP_PASS"),
+        os.getenv("SENDGRID_API_KEY"),
+        os.getenv("ALERT_SENDER"),
+        os.getenv("ALERT_RECIPIENT"),
     ])
 
     # For each important env var, report only whether it is SET (never values).
-    env_vars = ["SECRET_KEY", "DATABASE_URL", "SMTP_HOST", "SMTP_USER",
-                "SMTP_PASS", "ALERT_SENDER", "ALERT_RECIPIENT"]
+    env_vars = ["SECRET_KEY", "DATABASE_URL", "SENDGRID_API_KEY",
+                "ALERT_SENDER", "ALERT_RECIPIENT"]
     env_status = {name: bool(os.getenv(name)) for name in env_vars}
 
     return render_template(
@@ -719,4 +712,5 @@ def settings():
 
 if __name__ == "__main__":
     # Run a local development server at http://localhost:5000
+    app.run(host="0.0.0.0", port=5000, debug=True)
     app.run(host="0.0.0.0", port=5000, debug=True)
